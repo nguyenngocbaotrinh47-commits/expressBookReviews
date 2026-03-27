@@ -3,26 +3,32 @@ let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
-const axios = require('axios'); // Khai báo axios theo yêu cầu của Task 11
+const axios = require('axios'); 
 
-// Task 7: Đăng ký người dùng
+// Task 7: Register a new user
 public_users.post("/register", (req, res) => {
   const { username, password } = req.body;
   
+  // Check if both username and password are provided in the request body
   if (username && password) {
+    // Validate if the user already exists in our records
     if (!isValid(username)) { 
+      // Add the new user credentials to the users array
       users.push({"username": username, "password": password});
       return res.status(200).json({message: "User successfully registered. Now you can login"});
     } else {
       return res.status(404).json({message: "User already exists!"});
     }
   }
+  // Return an error if credentials are missing
   return res.status(404).json({message: "Unable to register user. Please provide username and password."});
 });
 
-// Task 10: Lấy danh sách tất cả sách (Sử dụng Async/Await)
+// Task 10: Get the list of all books available in the shop
+// Implemented using async/await to handle asynchronous operations
 public_users.get('/', async function (req, res) {
   try {
+    // Simulating an asynchronous fetching operation
     const getBooks = await Promise.resolve(books);
     return res.status(200).send(JSON.stringify(getBooks, null, 4));
   } catch (error) {
@@ -30,57 +36,71 @@ public_users.get('/', async function (req, res) {
   }
 });
 
-// Task 11: Tìm sách theo ISBN (Sử dụng Promises)
-public_users.get('/isbn/:isbn', function (req, res) {
+// Task 11: Get book details based on ISBN
+// Implemented using async/await for better readability and maintainability
+public_users.get('/isbn/:isbn', async function (req, res) {
   const isbn = req.params.isbn;
   
-  new Promise((resolve, reject) => {
-    if (books[isbn]) {
-      resolve(books[isbn]);
+  try {
+    // Simulating asynchronous retrieval of a specific book by its ISBN
+    const book = await Promise.resolve(books[isbn]);
+    if (book) {
+      return res.status(200).json(book);
     } else {
-      reject("Book not found");
+      return res.status(404).json({message: "Book not found"});
     }
-  })
-  .then(book => res.status(200).json(book))
-  .catch(err => res.status(404).json({message: err}));
+  } catch (error) {
+    return res.status(500).json({message: "Error retrieving book by ISBN"});
+  }
 });
   
-// Task 12: Tìm sách theo Tác giả (Sử dụng Promises)
-public_users.get('/author/:author', function (req, res) {
+// Task 12: Get book details based on author
+// Implemented using async/await to handle the data filtering asynchronously
+public_users.get('/author/:author', async function (req, res) {
   const author = req.params.author;
   
-  new Promise((resolve, reject) => {
-    let filtered_books = Object.values(books).filter(b => b.author === author);
+  try {
+    // Fetch all books and filter them based on the provided author name
+    const allBooks = await Promise.resolve(books);
+    const filtered_books = Object.values(allBooks).filter(b => b.author === author);
+    
+    // Check if any books match the author criteria
     if (filtered_books.length > 0) {
-      resolve(filtered_books);
+      return res.status(200).json({booksByAuthor: filtered_books});
     } else {
-      reject("Author not found");
+      return res.status(404).json({message: "Author not found"});
     }
-  })
-  .then(data => res.status(200).json({booksByAuthor: data}))
-  .catch(err => res.status(404).json({message: err}));
+  } catch (error) {
+    return res.status(500).json({message: "Error retrieving books by author"});
+  }
 });
 
-// Task 13: Tìm sách theo Tiêu đề (Sử dụng Promises)
-public_users.get('/title/:title', function (req, res) {
+// Task 13: Get book details based on title
+// Implemented using async/await to keep consistent asynchronous pattern
+public_users.get('/title/:title', async function (req, res) {
   const title = req.params.title;
   
-  new Promise((resolve, reject) => {
-    let filtered_books = Object.values(books).filter(b => b.title === title);
+  try {
+    // Fetch all books and filter them based on the exact title
+    const allBooks = await Promise.resolve(books);
+    const filtered_books = Object.values(allBooks).filter(b => b.title === title);
+    
+    // Return the matched books or a 404 error if empty
     if (filtered_books.length > 0) {
-      resolve(filtered_books);
+      return res.status(200).json({booksByTitle: filtered_books});
     } else {
-      reject("Title not found");
+      return res.status(404).json({message: "Title not found"});
     }
-  })
-  .then(data => res.status(200).json({booksByTitle: data}))
-  .catch(err => res.status(404).json({message: err}));
+  } catch (error) {
+    return res.status(500).json({message: "Error retrieving books by title"});
+  }
 });
 
-// Task 6: Lấy Review của sách
+// Task 6: Get book review
 public_users.get('/review/:isbn', function (req, res) {
   const isbn = req.params.isbn;
   
+  // Directly access the reviews object for the provided ISBN
   if (books[isbn]) {
       return res.status(200).json(books[isbn].reviews);
   }
